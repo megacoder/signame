@@ -1,0 +1,41 @@
+#!/bin/awk -f
+# vim: ts=8 sw=8
+# Run this script against "/usr/include/bits/signum.h" for best results ;-)
+BEGIN	{
+	print "#include <names.h>"
+	print ""
+}
+/^#define/ && ($2 ~ /^SIG/) && ($3 ~ /^[0-9]+$/)	{
+	name = $2
+	num  = $3 + 0
+	sub( /^.*[/][*]/, "" )		# Drop upto & include comment start
+	sub( /[*][/].*$/, "" )		# Drop comment close to EOL
+	sub( /^[ \t]*/, "" )		# Drop leading whitespace
+	sub( /[ \t]*$/, "" )		# Drop trailing whitespace
+	note = $0
+	# printf "%s|%s|%s\n", name, num, note
+	if( !( num in names ) )	{
+		names[ num ] = name
+		notes[ num ] = note
+		if( length( name ) > maxName )	{
+			maxName = length( name )
+			}
+		if( num > maxNum )	{
+			maxNum = num
+		}
+	}
+}
+END	{
+	++maxNum
+	printf "Name_t\tnames[ %d ] =\t{\n", maxNum
+	for( num = 0; num < maxNum; ++num )	{
+		if( num in names )	{
+			printf "  [%2d] = {", num
+			printf " %-*s", maxName+3, "\"" names[ num ] "\","
+			printf " %-52s", "\"" notes[ num ] "\""
+			printf "  }%s\n", (num != (maxNum-1)) ? "," : ""
+		}
+	}
+	printf "};\n"
+	printf "int\tnNames = %d;\n", maxNum
+}
